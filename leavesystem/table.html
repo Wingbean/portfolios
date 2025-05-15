@@ -6,23 +6,34 @@
       <th style="border: 1px solid #ddd; padding: 8px;">ประเภท</th>
       <th style="border: 1px solid #ddd; padding: 8px;">เริ่ม</th>
       <th style="border: 1px solid #ddd; padding: 8px;">ถึง</th>
+      <th style="border: 1px solid #ddd; padding: 8px;">ลบ</th>
     </tr>
   </thead>
   <tbody id="leaveTableBody">
     <tr>
-      <td colspan="5" style="text-align: center;">กำลังโหลดข้อมูล...</td>
+      <td colspan="6" style="text-align: center;">กำลังโหลดข้อมูล...</td>
     </tr>
   </tbody>
 </table>
 
 <script>
+  // ฟังก์ชันสำหรับลบรายการลา
+  function deleteLeaveEntry(timestamp) {
+    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) {
+      console.log("กำลังลบรายการที่มี Timestamp:", timestamp);
+      google.script.run
+        .withSuccessHandler(fetchLeaveData) // โหลดข้อมูลใหม่หลังจากลบสำเร็จ
+        .deleteLeaveData(timestamp);
+    }
+  }
+
   // ฟังก์ชันสำหรับรายการวันลา
   function fetchLeaveData() {
     console.log("เริ่มดึงข้อมูลวันลา...");
     const tbody = document.getElementById("leaveTableBody");
 
     // แสดงข้อความ "กำลังโหลดข้อมูล..."
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>';
 
     // เรียกใช้ฟังก์ชัน getLeaveDataForClient ที่เซิร์ฟเวอร์
     google.script.run
@@ -48,6 +59,7 @@
               if (row && row.length >= 5) {
                 // สร้างแถวใหม่
                 const tr = document.createElement("tr");
+                tr.dataset.rawTimestamp = row[0]; // เก็บ timestamp ดิบไว้ใน data attribute
 
                 // วนลูปสร้าง cell แต่ละคอลัมน์
                 for (let j = 0; j < 5; j++) {
@@ -57,7 +69,7 @@
 
                   let cellValue = row[j] || "";
 
-                  // จัดการกับวันที่และเวลา
+                  // จัดการกับวันที่และเวลาสำหรับการแสดงผล
                   if (j === 0 || j === 3 || j === 4) { // Timestamp, วันที่เริ่ม, วันที่สิ้นสุด
                     try {
                       const date = new Date(cellValue);
@@ -71,6 +83,18 @@
                   tr.appendChild(td);
                 }
 
+                // เพิ่มปุ่ม "ลบ" ในคอลัมน์สุดท้าย
+                const deleteTd = document.createElement("td");
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "ลบ";
+                deleteButton.classList.add("btn", "btn-danger", "btn-sm");
+                deleteButton.onclick = function() {
+                  const rawTimestamp = this.parentNode.parentNode.dataset.rawTimestamp;
+                  deleteLeaveEntry(rawTimestamp); // ดึง timestamp ดิบจาก data attribute ของ tr
+                };
+                deleteTd.appendChild(deleteButton);
+                tr.appendChild(deleteTd);
+
                 tbody.appendChild(tr);
               } else {
                 console.warn("พบแถวข้อมูลที่ไม่สมบูรณ์:", row);
@@ -78,16 +102,16 @@
             }
           } else {
             console.log("ไม่พบข้อมูลวันลา (มีเพียงแถวหัวตาราง)");
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">ไม่มีข้อมูลวันลา</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">ไม่มีข้อมูลวันลา</td></tr>';
           }
         } else {
           console.error("รูปแบบข้อมูลไม่ถูกต้อง:", data);
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">ไม่สามารถแสดงข้อมูลได้</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">ไม่สามารถแสดงข้อมูลได้</td></tr>';
         }
       })
       .withFailureHandler(function(error) {
         console.error("เกิดข้อผิดพลาด:", error);
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
       })
       .getLeaveDataForClient(); // ใช้ getLeaveDataForClient() เท่านั้น
   }
