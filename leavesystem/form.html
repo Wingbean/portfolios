@@ -1,0 +1,61 @@
+<form id="leaveForm" class="p-3 bg-light text-dark rounded shadow" style="min-width: 300px;">
+  <div class="mb-3">
+    <label for="name" class="form-label">ชื่อ-นามสกุล</label>
+    <select class="form-select" id="name" required>
+      <option value="">-- กรุณาเลือก --</option>
+      <option>นพ.เกษมศานต์</option>
+      <option>นพ.สุทธิศักดิ์</option>
+      <option>นพ.วสวัตติ์</option>
+      <option>พญ.ธันยธรณ์</option>
+      <option>นพ.ศุภวิชญ์</option>
+      <option>นพ.ธีรภัทร</option>
+      <option>นพ.ธนนันท์</option>
+      <option>นพ.วีรภัทร</option>
+      <option>พญ.ฝ้าย</option>
+      <option>พญ.ซินดี้</option>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label for="leaveType" class="form-label">ชนิดวันลา</label>
+    <select class="form-select" id="leaveType" required>
+      <option value="">-- เลือกประเภท --</option>
+      <option>ลาพักผ่อน</option>
+      <option>ลากิจ</option>
+      <option>ลาป่วย</option>
+      <option>ไปราชการ อบรม</option>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">วันที่ลา</label>
+    <input type="date" class="form-control" id="startDate" required>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">ถึงวันที่</label>
+    <input type="date" class="form-control" id="endDate" required>
+  </div>
+
+  <button type="submit" class="btn btn-primary w-100">บันทึกวันลา</button>
+</form>
+
+<script>
+  document.getElementById('leaveForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = {
+      name: document.getElementById('name').value,
+      leaveType: document.getElementById('leaveType').value,
+      startDate: document.getElementById('startDate').value,
+      endDate: document.getElementById('endDate').value
+    };
+
+    google.script.run
+      .withSuccessHandler(() => {
+        alert("บันทึกเรียบร้อยแล้ว");
+        document.getElementById('leaveForm').reset();
+        location.reload(); // รีโหลดเพื่ออัปเดตตาราง
+      })
+      .saveLeaveData(data);
+  });
+</script>
