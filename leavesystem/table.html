@@ -1,0 +1,97 @@
+<table class="table table-striped table-bordered table-hover">
+  <thead class="table-secondary text-dark">
+    <tr>
+      <th style="border: 1px solid #ddd; padding: 8px;">เวลาที่บันทึก</th>
+      <th style="border: 1px solid #ddd; padding: 8px;">ชื่อ</th>
+      <th style="border: 1px solid #ddd; padding: 8px;">ประเภท</th>
+      <th style="border: 1px solid #ddd; padding: 8px;">เริ่ม</th>
+      <th style="border: 1px solid #ddd; padding: 8px;">ถึง</th>
+    </tr>
+  </thead>
+  <tbody id="leaveTableBody">
+    <tr>
+      <td colspan="5" style="text-align: center;">กำลังโหลดข้อมูล...</td>
+    </tr>
+  </tbody>
+</table>
+
+<script>
+  // ฟังก์ชันสำหรับรายการวันลา
+  function fetchLeaveData() {
+    console.log("เริ่มดึงข้อมูลวันลา...");
+    const tbody = document.getElementById("leaveTableBody");
+
+    // แสดงข้อความ "กำลังโหลดข้อมูล..."
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>';
+
+    // เรียกใช้ฟังก์ชัน getLeaveDataForClient ที่เซิร์ฟเวอร์
+    google.script.run
+      .withSuccessHandler(function(data) {
+        // เคลียร์ข้อความ "กำลังโหลดข้อมูล..."
+        tbody.innerHTML = "";
+
+        console.log("ได้รับข้อมูล:", data);
+
+        // ตรวจสอบว่าได้รับข้อมูลที่ถูกต้อง
+        if (data && Array.isArray(data)) {
+          console.log("จำนวนแถวข้อมูล:", data.length);
+
+          // ถ้ามีข้อมูลมากกว่า 1 แถว (รวมหัวตาราง)
+          if (data.length > 1) {
+            console.log("พบข้อมูล, กำลังแสดงผล...");
+
+            // เริ่มจากแถวที่ 1 (ข้ามหัวตาราง)
+            for (let i = 1; i < data.length; i++) {
+              const row = data[i];
+              console.log("แถวที่", i, ":", row);
+
+              if (row && row.length >= 5) {
+                // สร้างแถวใหม่
+                const tr = document.createElement("tr");
+
+                // วนลูปสร้าง cell แต่ละคอลัมน์
+                for (let j = 0; j < 5; j++) {
+                  const td = document.createElement("td");
+                  td.style.border = "1px solid #ddd";
+                  td.style.padding = "8px";
+
+                  let cellValue = row[j] || "";
+
+                  // จัดการกับวันที่และเวลา
+                  if (j === 0 || j === 3 || j === 4) { // Timestamp, วันที่เริ่ม, วันที่สิ้นสุด
+                    try {
+                      const date = new Date(cellValue);
+                      if (!isNaN(date.getTime())) {
+                        cellValue = date.toLocaleString('th-TH');
+                      }
+                    } catch (e) { /* ใช้ค่าเดิมถ้าแปลงไม่ได้ */ }
+                  }
+
+                  td.textContent = cellValue;
+                  tr.appendChild(td);
+                }
+
+                tbody.appendChild(tr);
+              } else {
+                console.warn("พบแถวข้อมูลที่ไม่สมบูรณ์:", row);
+              }
+            }
+          } else {
+            console.log("ไม่พบข้อมูลวันลา (มีเพียงแถวหัวตาราง)");
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">ไม่มีข้อมูลวันลา</td></tr>';
+          }
+        } else {
+          console.error("รูปแบบข้อมูลไม่ถูกต้อง:", data);
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">ไม่สามารถแสดงข้อมูลได้</td></tr>';
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error("เกิดข้อผิดพลาด:", error);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+      })
+      .getLeaveDataForClient(); // ใช้ getLeaveDataForClient() เท่านั้น
+  }
+
+  // เรียกใช้ฟังก์ชันเมื่อหน้าเว็บโหลดเสร็จ
+  document.addEventListener('DOMContentLoaded', fetchLeaveData);
+</script>
