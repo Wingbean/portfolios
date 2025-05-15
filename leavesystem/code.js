@@ -128,3 +128,35 @@ function getCalendarData(month) {
   return result;
 }
 
+// ✅ ลบวันลา
+function deleteLeaveData(timestampToDelete) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("LeaveData");
+    if (!sheet) {
+      Logger.log("Error: Sheet 'LeaveData' not found!");
+      return;
+    }
+
+    const data = sheet.getDataRange().getValues();
+    let rowToDelete = -1;
+
+    // ค้นหาแถวที่ต้องการลบโดยเทียบจาก Timestamp (แปลงทั้งสองค่าเป็น ISO String)
+    for (let i = 1; i < data.length; i++) { // เริ่มจากแถวที่ 1 เพื่อข้าม Header
+      const sheetTimestamp = data[i][0] instanceof Date ? data[i][0].toISOString() : String(data[i][0]);
+      if (sheetTimestamp === timestampToDelete) {
+        rowToDelete = i + 1; // Apps Script นับแถวเริ่มจาก 1
+        break;
+      }
+    }
+
+    if (rowToDelete > 0) {
+      sheet.deleteRow(rowToDelete);
+      Logger.log(`ลบแถวที่ ${rowToDelete} ที่มี Timestamp: ${timestampToDelete} แล้ว`);
+    } else {
+      Logger.log(`ไม่พบรายการที่มี Timestamp: ${timestampToDelete}`);
+    }
+  } catch (error) {
+    Logger.log(`เกิดข้อผิดพลาดในการลบข้อมูล: ${error}`);
+  }
+}
