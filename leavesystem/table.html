@@ -6,12 +6,13 @@
       <th style="border: 1px solid #ddd; padding: 8px;">ประเภท</th>
       <th style="border: 1px solid #ddd; padding: 8px;">เริ่ม</th>
       <th style="border: 1px solid #ddd; padding: 8px;">ถึง</th>
+      <th style="border: 1px solid #ddd; padding: 8px;">หมายเหตุ</th>
       <th style="border: 1px solid #ddd; padding: 8px;">ลบ</th>
     </tr>
   </thead>
   <tbody id="leaveTableBody">
     <tr>
-      <td colspan="6" style="text-align: center;">กำลังโหลดข้อมูล...</td>
+      <td colspan="7" style="text-align: center;">กำลังโหลดข้อมูล...</td>
     </tr>
   </tbody>
 </table>
@@ -76,7 +77,7 @@
   function fetchLeaveData() {
     console.log("เริ่มดึงข้อมูลวันลา...");
     const tbody = document.getElementById("leaveTableBody");
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>';
     google.script.run
       .withSuccessHandler(function(data) {
         tbody.innerHTML = "";
@@ -88,11 +89,11 @@
             for (let i = 1; i < data.length; i++) {
               const row = data[i];
               console.log("แถวที่", i, ":", row);
-              if (row && row.length >= 6) { // เปลี่ยนเป็น >= 6 เพราะมีคอลัมน์ Code
+              if (row && row.length >= 7) { // เปลี่ยนเป็น >= 7 เพราะมีคอลัมน์ Code และ Note
                 const tr = document.createElement("tr");
                 tr.dataset.rawTimestamp = row[0];
-                tr.dataset.code = row[5]; // เก็บ Code ไว้ใน dataset
-                for (let j = 0; j < 5; j++) {
+                tr.dataset.code = row[6]; // เก็บ Code ไว้ใน dataset (Index 6)
+                for (let j = 0; j < 6; j++) { // วนลูปถึง 6 คอลัมน์ (ไม่รวมลบ)
                   const td = document.createElement("td");
                   td.style.border = "1px solid #ddd";
                   td.style.padding = "8px";
@@ -101,7 +102,6 @@
                     try {
                       const date = new Date(cellValue);
                       if (!isNaN(date.getTime())) {
-                        // แสดงเฉพาะส่วนของวันที่ (YYYY-MM-DD)
                         const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
                         cellValue = date.toLocaleDateString('th-TH', options);
                       }
@@ -127,16 +127,16 @@
             }
           } else {
             console.log("ไม่พบข้อมูลวันลา (มีเพียงแถวหัวตาราง)");
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">ไม่มีข้อมูลวันลา</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">ไม่มีข้อมูลวันลา</td></tr>';
           }
         } else {
           console.error("รูปแบบข้อมูลไม่ถูกต้อง:", data);
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">ไม่สามารถแสดงข้อมูลได้</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">ไม่สามารถแสดงข้อมูลได้</td></tr>';
         }
       })
       .withFailureHandler(function(error) {
         console.error("เกิดข้อผิดพลาด:", error);
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
       })
       .getLeaveDataForClient();
   }
