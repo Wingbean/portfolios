@@ -25,6 +25,11 @@
       </div>
       <div class="modal-body">
         คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?
+        <div class="mt-2">
+          <label for="deleteCode">กรุณากรอก Code เพื่อยืนยันการลบ:</label>
+          <input type="text" class="form-control" id="deleteCode">
+          <div id="invalidCodeAlert" class="alert alert-danger mt-2" style="display:none;">Code ไม่ถูกต้อง</div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
@@ -35,105 +40,86 @@
 </div>
 
 <script>
-  let timestampToDelete; // ตัวแปรเก็บ timestamp ที่ต้องการลบ
+  let timestampToDelete;
 
-  // ฟังก์ชันสำหรับแสดง Modal ยืนยันการลบ
   function showDeleteConfirmation(timestamp) {
     timestampToDelete = timestamp;
+    document.getElementById('deleteCode').value = ''; // เคลียร์ค่า Code ทุกครั้งที่เปิด Modal
+    document.getElementById('invalidCodeAlert').style.display = 'none'; // ซ่อนข้อความแจ้งเตือน Code ไม่ถูกต้อง
     const deleteConfirmationModal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
     deleteConfirmationModal.show();
   }
 
-  // เมื่อคลิกปุ่ม "ยืนยันการลบ" ใน Modal
   document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-    console.log("กำลังลบรายการที่มี Timestamp:", timestampToDelete);
+    const enteredCode = document.getElementById('deleteCode').value;
+    console.log("กำลังลบรายการที่มี Timestamp:", timestampToDelete, "Code ที่ป้อน:", enteredCode);
     google.script.run
-      .withSuccessHandler(fetchLeaveData)
+      .withSuccessHandler(function(response) {
+        if (response === 'success') {
+          fetchLeaveData(); // โหลดข้อมูลใหม่หลังลบสำเร็จ
+          const deleteConfirmationModal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmationModal'));
+          deleteConfirmationModal.hide();
+        } else {
+          document.getElementById('invalidCodeAlert').style.display = 'block'; // แสดงข้อความแจ้งเตือน Code ไม่ถูกต้อง
+        }
+      })
       .withFailureHandler(function(error) {
         alert("เกิดข้อผิดพลาด: " + error.message);
       })
-      .deleteLeaveData(timestampToDelete);
-
-    // ปิด Modal หลังจากลบ (หรือเกิดข้อผิดพลาด)
-    const deleteConfirmationModal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmationModal'));
-    deleteConfirmationModal.hide();
+      .deleteLeaveDataWithCode(timestampToDelete, enteredCode); // เปลี่ยนเป็นฟังก์ชันใหม่
   });
 
-  // ฟังก์ชันสำหรับลบรายการลา (เรียก showDeleteConfirmation แทน confirm)
   function deleteLeaveEntry(timestamp) {
     showDeleteConfirmation(timestamp);
   }
 
-  // ฟังก์ชันสำหรับรายการวันลา
   function fetchLeaveData() {
     console.log("เริ่มดึงข้อมูลวันลา...");
     const tbody = document.getElementById("leaveTableBody");
-
-    // แสดงข้อความ "กำลังโหลดข้อมูล..."
     tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>';
-
-    // เรียกใช้ฟังก์ชัน getLeaveDataForClient ที่เซิร์ฟเวอร์
     google.script.run
       .withSuccessHandler(function(data) {
-        // เคลียร์ข้อความ "กำลังโหลดข้อมูล..."
         tbody.innerHTML = "";
-
         console.log("ได้รับข้อมูล:", data);
-
-        // ตรวจสอบว่าได้รับข้อมูลที่ถูกต้อง
         if (data && Array.isArray(data)) {
           console.log("จำนวนแถวข้อมูล:", data.length);
-
-          // ถ้ามีข้อมูลมากกว่า 1 แถว (รวมหัวตาราง)
           if (data.length > 1) {
             console.log("พบข้อมูล, กำลังแสดงผล...");
-
-            // เริ่มจากแถวที่ 1 (ข้ามหัวตาราง)
             for (let i = 1; i < data.length; i++) {
               const row = data[i];
               console.log("แถวที่", i, ":", row);
-
-              if (row && row.length >= 5) {
-                // สร้างแถวใหม่
+              if (row && row.length >= 6) { // เปลี่ยนเป็น >= 6 เพราะมีคอลัมน์ Code
                 const tr = document.createElement("tr");
                 tr.dataset.rawTimestamp = row[0];
-
-                // วนลูปสร้าง cell แต่ละคอลัมน์
+                tr.dataset.code = row[5]; // เก็บ Code ไว้ใน dataset
                 for (let j = 0; j < 5; j++) {
                   const td = document.createElement("td");
                   td.style.border = "1px solid #ddd";
                   td.style.padding = "8px";
-
                   let cellValue = row[j] || "";
-
-                  // จัดการกับวันที่และเวลาสำหรับการแสดงผล
                   if (j === 0 || j === 3 || j === 4) {
                     try {
                       const date = new Date(cellValue);
                       if (!isNaN(date.getTime())) {
-                        cellValue = date.toLocaleString('th-TH');
+                        // แสดงเฉพาะส่วนของวันที่ (YYYY-MM-DD)
+                        const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+                        cellValue = date.toLocaleDateString('th-TH', options);
                       }
-                    } catch (e) {
-                      /* ใช้ค่าเดิมถ้าแปลงไม่ได้ */
-                    }
+                    } catch (e) { /* ใช้ค่าเดิมถ้าแปลงไม่ได้ */ }
                   }
-
                   td.textContent = cellValue;
                   tr.appendChild(td);
                 }
-
-                // เพิ่มปุ่ม "ลบ" ในคอลัมน์สุดท้าย
                 const deleteTd = document.createElement("td");
                 const deleteButton = document.createElement("button");
                 deleteButton.textContent = "ลบ";
                 deleteButton.classList.add("btn", "btn-danger", "btn-sm");
                 deleteButton.onclick = function() {
                   const rawTimestamp = this.parentNode.parentNode.dataset.rawTimestamp;
-                  showDeleteConfirmation(rawTimestamp); // เรียก showDeleteConfirmation แทน confirm
+                  showDeleteConfirmation(rawTimestamp);
                 };
                 deleteTd.appendChild(deleteButton);
                 tr.appendChild(deleteTd);
-
                 tbody.appendChild(tr);
               } else {
                 console.warn("พบแถวข้อมูลที่ไม่สมบูรณ์:", row);
@@ -155,6 +141,5 @@
       .getLeaveDataForClient();
   }
 
-  // เรียกใช้ฟังก์ชันเมื่อหน้าเว็บโหลดเสร็จ
   document.addEventListener('DOMContentLoaded', fetchLeaveData);
 </script>
