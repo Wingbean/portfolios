@@ -24,17 +24,23 @@
       <option>ลากิจ</option>
       <option>ลาป่วย</option>
       <option>ไปราชการ อบรม</option>
+      <option>ขอ OFF เวร</option>
     </select>
   </div>
 
   <div class="mb-3">
-    <label class="form-label">วันที่ลา</label>
+    <label for="startDate" class="form-label">วันที่ลา</label>
     <input type="date" class="form-control" id="startDate" required>
   </div>
 
   <div class="mb-3">
-    <label class="form-label">ถึงวันที่</label>
+    <label for="endDate" class="form-label">ถึงวันที่</label>
     <input type="date" class="form-control" id="endDate" required>
+  </div>
+
+  <div class="mb-3">
+    <label for="note" class="form-label">หมายเหตุ</label>
+    <textarea class="form-control" id="note" rows="1"></textarea>
   </div>
 
   <div id="successMessage" class="alert alert-success mt-3 visually-hidden" role="alert">
@@ -51,7 +57,8 @@
       name: document.getElementById('name').value,
       leaveType: document.getElementById('leaveType').value,
       startDate: document.getElementById('startDate').value,
-      endDate: document.getElementById('endDate').value
+      endDate: document.getElementById('endDate').value,
+      note: document.getElementById('note').value // เพิ่มการดึงค่าจากช่องหมายเหตุ
     };
 
     const successMessage = document.getElementById('successMessage');
