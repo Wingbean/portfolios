@@ -16,15 +16,52 @@
   </tbody>
 </table>
 
+<div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmationModalLabel">ยืนยันการลบ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">ลบ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-  // ฟังก์ชันสำหรับลบรายการลา
+  let timestampToDelete; // ตัวแปรเก็บ timestamp ที่ต้องการลบ
+
+  // ฟังก์ชันสำหรับแสดง Modal ยืนยันการลบ
+  function showDeleteConfirmation(timestamp) {
+    timestampToDelete = timestamp;
+    const deleteConfirmationModal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
+    deleteConfirmationModal.show();
+  }
+
+  // เมื่อคลิกปุ่ม "ยืนยันการลบ" ใน Modal
+  document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    console.log("กำลังลบรายการที่มี Timestamp:", timestampToDelete);
+    google.script.run
+      .withSuccessHandler(fetchLeaveData)
+      .withFailureHandler(function(error) {
+        alert("เกิดข้อผิดพลาด: " + error.message);
+      })
+      .deleteLeaveData(timestampToDelete);
+
+    // ปิด Modal หลังจากลบ (หรือเกิดข้อผิดพลาด)
+    const deleteConfirmationModal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmationModal'));
+    deleteConfirmationModal.hide();
+  });
+
+  // ฟังก์ชันสำหรับลบรายการลา (เรียก showDeleteConfirmation แทน confirm)
   function deleteLeaveEntry(timestamp) {
-    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) {
-      console.log("กำลังลบรายการที่มี Timestamp:", timestamp);
-      google.script.run
-        .withSuccessHandler(fetchLeaveData) // โหลดข้อมูลใหม่หลังจากลบสำเร็จ
-        .deleteLeaveData(timestamp);
-    }
+    showDeleteConfirmation(timestamp);
   }
 
   // ฟังก์ชันสำหรับรายการวันลา
@@ -59,7 +96,7 @@
               if (row && row.length >= 5) {
                 // สร้างแถวใหม่
                 const tr = document.createElement("tr");
-                tr.dataset.rawTimestamp = row[0]; // เก็บ timestamp ดิบไว้ใน data attribute
+                tr.dataset.rawTimestamp = row[0];
 
                 // วนลูปสร้าง cell แต่ละคอลัมน์
                 for (let j = 0; j < 5; j++) {
@@ -70,13 +107,15 @@
                   let cellValue = row[j] || "";
 
                   // จัดการกับวันที่และเวลาสำหรับการแสดงผล
-                  if (j === 0 || j === 3 || j === 4) { // Timestamp, วันที่เริ่ม, วันที่สิ้นสุด
+                  if (j === 0 || j === 3 || j === 4) {
                     try {
                       const date = new Date(cellValue);
                       if (!isNaN(date.getTime())) {
                         cellValue = date.toLocaleString('th-TH');
                       }
-                    } catch (e) { /* ใช้ค่าเดิมถ้าแปลงไม่ได้ */ }
+                    } catch (e) {
+                      /* ใช้ค่าเดิมถ้าแปลงไม่ได้ */
+                    }
                   }
 
                   td.textContent = cellValue;
@@ -90,7 +129,7 @@
                 deleteButton.classList.add("btn", "btn-danger", "btn-sm");
                 deleteButton.onclick = function() {
                   const rawTimestamp = this.parentNode.parentNode.dataset.rawTimestamp;
-                  deleteLeaveEntry(rawTimestamp); // ดึง timestamp ดิบจาก data attribute ของ tr
+                  showDeleteConfirmation(rawTimestamp); // เรียก showDeleteConfirmation แทน confirm
                 };
                 deleteTd.appendChild(deleteButton);
                 tr.appendChild(deleteTd);
@@ -113,7 +152,7 @@
         console.error("เกิดข้อผิดพลาด:", error);
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
       })
-      .getLeaveDataForClient(); // ใช้ getLeaveDataForClient() เท่านั้น
+      .getLeaveDataForClient();
   }
 
   // เรียกใช้ฟังก์ชันเมื่อหน้าเว็บโหลดเสร็จ
