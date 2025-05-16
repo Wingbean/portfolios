@@ -37,6 +37,10 @@
     <input type="date" class="form-control" id="endDate" required>
   </div>
 
+  <div id="successMessage" class="alert alert-success mt-3 visually-hidden" role="alert">
+    บันทึกสำเร็จ!
+  </div>
+
   <button type="submit" class="btn btn-primary w-100">บันทึกวันลา</button>
 </form>
 
@@ -50,11 +54,17 @@
       endDate: document.getElementById('endDate').value
     };
 
+    const successMessage = document.getElementById('successMessage');
+    successMessage.classList.remove('visually-hidden'); // แสดงข้อความ
+
     google.script.run
       .withSuccessHandler(() => {
-        alert("บันทึกเรียบร้อยแล้ว");
+        // ซ่อนข้อความหลังจากแสดงผลสักครู่ และ Redirect ไปที่ URL ของ Web App
+        setTimeout(() => {
+          successMessage.classList.add('visually-hidden');
+          window.location.href = 'https://script.google.com/macros/s/AKfycbzrznAtvlMp636JpW_K8uUSn4xYgcMnRnr0pQrTnkCK2gSZxBRisD-NtuPPSFGhcFg/exec'; // แทนที่ด้วย URL จริงของคุณ
+        }, 200);
         document.getElementById('leaveForm').reset();
-        location.reload(); // รีโหลดเพื่ออัปเดตตาราง
       })
       .saveLeaveData(data);
   });
